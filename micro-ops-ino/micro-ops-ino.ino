@@ -1,26 +1,30 @@
-#include <SendOnlySoftwareSerial.h>
+//local libraries inclusion in arduino is a mess: https://arduino.stackexchange.com/questions/8651/loading-local-libraries
+#include "SendOnlySoftwareSerial.h"
 
 #define TX 0
 #define RX 1
+//system allows also to have children and parents behind a mux
 //in avr parenrx need be same as rx but different name for easier code
-#define PARENTX 3
-#define CHILDRX 2
-#define CHILDTX 4
-
+unsigned char PARENRX[]={1,1};
+unsigned char PARENTX[]={2,3};
+#define PARENTS 2
+unsigned char CHILDRX[]={4,6};
+unsigned char CHILDTX[]={5,7};
+#define CHILDS 2
 
 /*
 
-     |   TX ----------------------------------> |  computer Serial  |
+     |TX -------------------------------------> |  computer Serial  |
      |             /--------------------------- |                   |
      |            /
 PARENRX=RX  <----/--\--request permiss--- |      |          1
      |               \---uart receive-----|parent|          3
      |                                    |      |
-  me |   PARENTX ------grant permission-> |      |          2
+  me |PARENTX ---------grant permission-> |      |          2
      |
-     |   CHILDRX <---grant permission-- |     |             2
+     |CHILDRX[n] <---grant permission-- |     |             2
      |                                  |     |
-     |   CHILDTX --\--uart send-------> |child|             3
+     |CHILDTX[n] --\--uart send-------> |child|             3
      |              \--req. permiss---> |     |             1
 
 
@@ -44,11 +48,21 @@ PARENRX=RX  <----/--\--request permiss--- |      |          1
 
 unsigned char flags [lastFlag];
 unsigned char currentState=0;
-SendOnlySoftwareSerial SchildTX (CHILDTX);
+unsigned char waitingChild=0;
+
+unsigned char messageOut[3];
+
+SendOnlySoftwareSerial SchildTX[CHILDS] = {
+  SendOnlySoftwareSerial(CHILDTX[0]),
+  SendOnlySoftwareSerial(CHILDTX[1])
+};
 
 void setup ()
 {
-  SchildTX.begin(9600);
+  for(unsigned char a = 0; a<CHILDS; a++){
+    SchildTX[a].begin(9600);
+  }
+  Serial.begin(9600);
   pinMode(SENDBUTTONPIN,INPUT_PULLUP);
 }
 
@@ -81,19 +95,18 @@ void stateCheck(){
       //only idle state can lead to other states.
       //if there is a message to be sent
       if(flags[ofSendMessage]){
-        startWaitingToSend();
+        startWaitingToSendAll();
       }
       //check if a parent is asking permission to send a message
-      if(digitalRead(PARENRX)){
-        startMessageReceive();
+      for(unsigned char a=0; a<PARENTS; a++){
+        if(digitalRead(PARENRX[a])){
+          startMessageReceive(a);
+        }
       }
     }
     break;
     case stWaitingToSend:{
-      //if the child gave me permission to send my message
-      if(digitalRead(CHILDRX)){
-        sendMessage();
-      }
+      waitingPermission();
     }
     break;
     case stWaitingToReceive:
@@ -108,36 +121,51 @@ void stateCheck(){
 
 
 //messages can only be sent to children (and the hardware serial)
-void startWaitingToSend(){
+void startWaitingToSendAll(){
   currentState=stWaitingToSend;
-  digitalWrite(CHILDTX,HIGH);
+  for(unsigned char childn=0; childn<CHILDS; childn++){
+    //pendant: instead of setting a flag and the pin, it will be more secure
+    //to set the pin and then use the pin as the flag
+    waitingChild=0x1<<childn;
+    digitalWrite(CHILDTX[childn],HIGH);
+  }
 }
-void startMessageReceive(){
+void startMessageReceive(unsigned char a){
   currentState=stWaitingToReceive;
   //grant permission
-  digitalWrite(PARENTX,HIGH);
+  digitalWrite(PARENTX[a],HIGH);
   long waitStart=millis();
   bool timeoutError=false;
-  while(!Serial.available){
+  //I use a single hardware serial RX pin to receive from all parents
+  while(!Serial.available()){
     if(millis()-waitStart>3000) timeoutError=true;
   }
-  digitalWrite(PARENTX,LOW);
+  digitalWrite(PARENTX[a],LOW);
   currentState=stIdle;
 }
-void waitPermission(){
+void waitingPermission(){
   //question: does the digital read interfere with the normal serial operation?
   //if so, perhaps we can receive permission from a parent using a different pin,
   //by somehow tying the RX and the ISPERMISSIONGRANTED pins
-  if(digitalRead(CHILDRX)){
-    currentState=stSending;
+  for(unsigned char childn=0; childn<CHILDS; childn++){
+    //if the iterated child is waiting to send message
+    if((waitingChild>>childn)&0x1)
+      if(digitalRead(CHILDRX[childn])){
 
-    SchildTX.write(messageOut[0]);
-    SchildTX.write(messageOut[1]);
-    SchildTX.write(messageOut[2]);
+        currentState=stSending;
 
+        //clear the flag that message is waiting for this child
+        waitingChild&=~(0x1<<childn);
+        digitalWrite(CHILDTX[childn],LOW);
+        //send message to the iterated child
+        SchildTX[childn].write(messageOut[0]);
+        SchildTX[childn].write(messageOut[1]);
+        SchildTX[childn].write(messageOut[2]);
+
+      }
+  }
+  if(waitingChild=0x0){
     currentState=stIdle;
-
-    digitalWrite(CHILDTX,LOW);
   }
 }
 
