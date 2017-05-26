@@ -1,15 +1,16 @@
 //local libraries inclusion in arduino is a mess: https://arduino.stackexchange.com/questions/8651/loading-local-libraries
 #include "SendOnlySoftwareSerial.h"
+#include "ReceiveOnlySoftwareSerial.h"
 
 #define TX 0
 #define RX 1
 //system allows also to have children and parents behind a mux
 //in avr parenrx need be same as rx but different name for easier code
-unsigned char PARENRX[]={1,1};
-unsigned char PARENTX[]={2,3};
+unsigned char PARENRX[]={2,4};
+unsigned char PARENTX[]={3,5};
 #define PARENTS 2
-unsigned char CHILDRX[]={4,6};
-unsigned char CHILDTX[]={5,7};
+unsigned char CHILDRX[]={6,8};
+unsigned char CHILDTX[]={7,9};
 #define CHILDS 2
 
 /*
@@ -34,9 +35,10 @@ PARENRX=RX  <----/--\--request permiss--- |      |          1
 */
 
 
-#define SENDBUTTONPIN 9
+#define SENDBUTTONPIN 13
 #define waitingToSendPin 10
 #define waitingToReceivePin 11
+#define idlePin 12
 
 #define stIdle 0
 #define stWaitingToSend 1
@@ -57,9 +59,23 @@ unsigned char messageIn[3];
 
 #define BAUDRATE 9600
 
+//this method of communicating many childs and paraents is not what i wanted originally,
+//however a prototype that follows this method should be compatible with one that follows
+//the method I originally wanted.
+
+
+
+//childRX are gouing to be just for analog reads
+//childtx are softwareserials
 SendOnlySoftwareSerial SchildTX[CHILDS] = {
   SendOnlySoftwareSerial(CHILDTX[0]),
   SendOnlySoftwareSerial(CHILDTX[1])
+};
+//parent tx are going to be just for analog writes
+//parentRx are softwareserials
+ReceiveOnlySoftwareSerial SparenRX[CHILDS] = {
+  ReceiveOnlySoftwareSerial(PARENRX[0]),
+  ReceiveOnlySoftwareSerial(PARENRX[1])
 };
 
 void setup ()
@@ -67,14 +83,24 @@ void setup ()
   for(unsigned char a = 0; a<CHILDS; a++){
     SchildTX[a].begin(BAUDRATE);
   }
+  //reception softwareserials are only activated when a reception flag is set
+  //so it doesn't mess up with receive permission flags
+
   Serial.begin(BAUDRATE);
-  pinMode(SENDBUTTONPIN,INPUT_PULLUP);
+  pinMode(SENDBUTTONPIN,INPUT);
   pinMode(waitingToSendPin,OUTPUT);
   pinMode(waitingToReceivePin,OUTPUT);
+  pinMode(idlePin,OUTPUT);
+
+  pinMode(PARENTX[0],OUTPUT);
+  pinMode(PARENTX[1],OUTPUT);
+  pinMode(CHILDRX[0],INPUT);
+  pinMode(CHILDRX[1],INPUT);
+
+  Serial.println("Hi");
 }
 
 void loop(){
-
   checkButton();
   stateCheck();
 }
@@ -82,7 +108,7 @@ void loop(){
 
 void checkButton(){
   //debounced button press
-  if(!digitalRead(SENDBUTTONPIN)){
+  if(digitalRead(SENDBUTTONPIN)){
     if(flags[ofSendButton]!=127)
       flags[ofSendButton]++;
   }else{
@@ -99,6 +125,7 @@ void checkButton(){
 void stateCheck(){
   switch (currentState){
     case stIdle:{
+      digitalWrite(idlePin,HIGH);
       //only idle state can lead to other states.
       //if there is a message to be sent
       if(flags[ofSendMessage]){
@@ -112,6 +139,7 @@ void stateCheck(){
           parentReceptionWaiting=true;
         }
       }
+      Serial.write('.');
       //if there is no parent trying to send, means we are receiving from computer
       if(!parentReceptionWaiting){
         unsigned char n=0;
@@ -129,15 +157,18 @@ void stateCheck(){
         Serial.write(messageOut[2]);
         Serial.write('\n');
       }
+      break;
     }
-    break;
     case stWaitingToSend:{
+      digitalWrite(idlePin,LOW);
       waitingPermission();
+      break;
     }
-    break;
     case stWaitingToReceive:
+      digitalWrite(idlePin,LOW);
     break;
     case stSending:
+      digitalWrite(idlePin,LOW);
     break;
 
   }
@@ -161,15 +192,19 @@ void startMessageReceive(unsigned char a){
   currentState=stReceiving;
   //grant permission
   digitalWrite(PARENTX[a],HIGH);
+  digitalWrite(waitingToReceivePin,HIGH);
+  SparenRX[a].begin(BAUDRATE);
+
   long waitStart=millis();
   bool timeoutError=false;
-  //I use a single hardware serial RX pin to receive from all parents
-  while(!Serial.available()){
+
+  while(!SparenRX[a].available()){
     if(millis()-waitStart>3000) timeoutError=true;
   }
+
   unsigned char n=0;
-  while(Serial.available()){
-    messageIn[n]=Serial.read();
+  while(SparenRX[a].available()){
+    messageIn[n]=SparenRX[a].read();
     n++;
     n%=3;
   }
@@ -179,6 +214,8 @@ void startMessageReceive(unsigned char a){
   Serial.write(messageIn[1]);
   Serial.write(messageIn[2]);
   Serial.write('\n');
+
+  SparenRX[a].end();
 
   digitalWrite(PARENTX[a],LOW);
   currentState=stIdle;
@@ -205,7 +242,8 @@ void waitingPermission(){
         digitalWrite(CHILDTX[childn],LOW);
       }
   }
-  if(waitingChild=0x0){
+  Serial.println(String(waitingChild,BIN));
+  if(waitingChild==0x0){
     digitalWrite(waitingToSendPin,LOW);
     currentState=stIdle;
   }
