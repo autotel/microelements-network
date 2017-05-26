@@ -1,0 +1,192 @@
+EESchema Schematic File Version 2
+LIBS:power
+LIBS:device
+LIBS:transistors
+LIBS:conn
+LIBS:linear
+LIBS:regul
+LIBS:74xx
+LIBS:cmos4000
+LIBS:adc-dac
+LIBS:memory
+LIBS:xilinx
+LIBS:microcontrollers
+LIBS:dsp
+LIBS:microchip
+LIBS:analog_switches
+LIBS:motorola
+LIBS:texas
+LIBS:intel
+LIBS:audio
+LIBS:interface
+LIBS:digital-audio
+LIBS:philips
+LIBS:display
+LIBS:cypress
+LIBS:siliconi
+LIBS:opto
+LIBS:atmel
+LIBS:contrib
+LIBS:valves
+LIBS:ArduProMiniTKB
+LIBS:micro-com-cache
+EELAYER 25 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 1 1
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L 4051 U?
+U 1 1 59169601
+P 6100 2600
+F 0 "U?" H 6200 2600 50  0000 C CNN
+F 1 "4051" H 6200 2400 50  0000 C CNN
+F 2 "" H 6100 2600 60  0001 C CNN
+F 3 "" H 6100 2600 60  0001 C CNN
+	1    6100 2600
+	1    0    0    -1  
+$EndComp
+$Comp
+L 4051 U?
+U 1 1 59169842
+P 6100 3950
+F 0 "U?" H 6200 3950 50  0000 C CNN
+F 1 "4051" H 6200 3750 50  0000 C CNN
+F 2 "" H 6100 3950 60  0001 C CNN
+F 3 "" H 6100 3950 60  0001 C CNN
+	1    6100 3950
+	1    0    0    -1  
+$EndComp
+$Comp
+L CONN_01X02 P?
+U 1 1 5916A07C
+P 3450 2050
+F 0 "P?" H 3450 2200 50  0000 C CNN
+F 1 "CONN_01X02" V 3550 2050 50  0000 C CNN
+F 2 "" H 3450 2050 50  0000 C CNN
+F 3 "" H 3450 2050 50  0000 C CNN
+	1    3450 2050
+	-1   0    0    1   
+$EndComp
+$Comp
+L CONN_01X02 P?
+U 1 1 5916A25F
+P 3450 2650
+F 0 "P?" H 3450 2800 50  0000 C CNN
+F 1 "CONN_01X02" V 3550 2650 50  0000 C CNN
+F 2 "" H 3450 2650 50  0000 C CNN
+F 3 "" H 3450 2650 50  0000 C CNN
+	1    3450 2650
+	-1   0    0    1   
+$EndComp
+$Comp
+L CONN_01X02 P?
+U 1 1 5916A2B1
+P 3450 3200
+F 0 "P?" H 3450 3350 50  0000 C CNN
+F 1 "CONN_01X02" V 3550 3200 50  0000 C CNN
+F 2 "" H 3450 3200 50  0000 C CNN
+F 3 "" H 3450 3200 50  0000 C CNN
+	1    3450 3200
+	-1   0    0    1   
+$EndComp
+$Comp
+L CONN_01X02 P?
+U 1 1 5916A2E9
+P 3450 3800
+F 0 "P?" H 3450 3950 50  0000 C CNN
+F 1 "CONN_01X02" V 3550 3800 50  0000 C CNN
+F 2 "" H 3450 3800 50  0000 C CNN
+F 3 "" H 3450 3800 50  0000 C CNN
+	1    3450 3800
+	-1   0    0    1   
+$EndComp
+$Comp
+L ARDUPROMINI-6 uP?
+U 1 1 5916BEC4
+P 9250 1750
+F 0 "uP?" H 9050 1650 60  0000 C CNN
+F 1 "ARDUPROMINI-6" H 9250 1750 60  0000 C CNN
+F 2 "" H 9250 1750 60  0000 C CNN
+F 3 "" H 9250 1750 60  0000 C CNN
+	1    9250 1750
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	5400 3000 4750 3000
+Wire Wire Line
+	4750 3000 4750 4350
+Wire Wire Line
+	4750 4350 5400 4350
+Wire Wire Line
+	5400 4450 4850 4450
+Wire Wire Line
+	4850 4450 4850 3100
+Wire Wire Line
+	4850 3100 5400 3100
+Wire Wire Line
+	6800 3350 7450 3350
+Wire Wire Line
+	7450 3350 7450 2950
+Wire Wire Line
+	7450 2950 8050 2950
+Wire Wire Line
+	3650 2000 5400 2000
+Wire Wire Line
+	3650 2600 4150 2600
+Wire Wire Line
+	4150 2600 4150 2100
+Wire Wire Line
+	4150 2100 5400 2100
+Wire Wire Line
+	3650 3150 4250 3150
+Wire Wire Line
+	4250 3150 4250 2200
+Wire Wire Line
+	4250 2200 5400 2200
+Wire Wire Line
+	3650 3750 4350 3750
+Wire Wire Line
+	4350 3750 4350 2300
+Wire Wire Line
+	4350 2300 5400 2300
+Wire Wire Line
+	3650 2100 4050 2100
+Wire Wire Line
+	4050 2100 4050 3350
+Wire Wire Line
+	4050 3350 5400 3350
+Wire Wire Line
+	3650 2700 3950 2700
+Wire Wire Line
+	3950 2700 3950 3450
+Wire Wire Line
+	3950 3450 5400 3450
+Wire Wire Line
+	3650 3250 3850 3250
+Wire Wire Line
+	3850 3250 3850 3550
+Wire Wire Line
+	3850 3550 5400 3550
+Wire Wire Line
+	3650 3850 4450 3850
+Wire Wire Line
+	4450 3850 4450 3650
+Wire Wire Line
+	4450 3650 5400 3650
+Wire Wire Line
+	6800 2000 7350 2000
+Wire Wire Line
+	7350 2000 7350 3250
+Wire Wire Line
+	7350 3250 8050 3250
+$EndSCHEMATC
