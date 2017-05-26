@@ -34,13 +34,15 @@ PARENRX=RX  <----/--\--request permiss--- |      |          1
 */
 
 
-#define SENDBUTTONPIN 5
-
+#define SENDBUTTONPIN 9
+#define waitingToSendPin 10
+#define waitingToReceivePin 11
 
 #define stIdle 0
 #define stWaitingToSend 1
 #define stWaitingToReceive 2
 #define stSending 3
+#define stReceiving 4
 
 #define ofSendButton 0
 #define ofSendMessage 1
@@ -51,6 +53,9 @@ unsigned char currentState=0;
 unsigned char waitingChild=0;
 
 unsigned char messageOut[3];
+unsigned char messageIn[3];
+
+#define BAUDRATE 9600
 
 SendOnlySoftwareSerial SchildTX[CHILDS] = {
   SendOnlySoftwareSerial(CHILDTX[0]),
@@ -60,10 +65,12 @@ SendOnlySoftwareSerial SchildTX[CHILDS] = {
 void setup ()
 {
   for(unsigned char a = 0; a<CHILDS; a++){
-    SchildTX[a].begin(9600);
+    SchildTX[a].begin(BAUDRATE);
   }
-  Serial.begin(9600);
+  Serial.begin(BAUDRATE);
   pinMode(SENDBUTTONPIN,INPUT_PULLUP);
+  pinMode(waitingToSendPin,OUTPUT);
+  pinMode(waitingToReceivePin,OUTPUT);
 }
 
 void loop(){
@@ -75,7 +82,7 @@ void loop(){
 
 void checkButton(){
   //debounced button press
-  if(digitalRead(SENDBUTTONPIN)){
+  if(!digitalRead(SENDBUTTONPIN)){
     if(flags[ofSendButton]!=127)
       flags[ofSendButton]++;
   }else{
@@ -97,11 +104,30 @@ void stateCheck(){
       if(flags[ofSendMessage]){
         startWaitingToSendAll();
       }
+      bool parentReceptionWaiting=false;
       //check if a parent is asking permission to send a message
       for(unsigned char a=0; a<PARENTS; a++){
         if(digitalRead(PARENRX[a])){
           startMessageReceive(a);
+          parentReceptionWaiting=true;
         }
+      }
+      //if there is no parent trying to send, means we are receiving from computer
+      if(!parentReceptionWaiting){
+        unsigned char n=0;
+        if(Serial.available()){
+          delay(10);
+        }
+        while(Serial.available()){
+          messageOut[n]=Serial.read();
+          n++;
+          n%=3;
+        }
+        Serial.print("stored: ");
+        Serial.write(messageOut[0]);
+        Serial.write(messageOut[1]);
+        Serial.write(messageOut[2]);
+        Serial.write('\n');
       }
     }
     break;
@@ -123,6 +149,7 @@ void stateCheck(){
 //messages can only be sent to children (and the hardware serial)
 void startWaitingToSendAll(){
   currentState=stWaitingToSend;
+  digitalWrite(waitingToSendPin,HIGH);
   for(unsigned char childn=0; childn<CHILDS; childn++){
     //pendant: instead of setting a flag and the pin, it will be more secure
     //to set the pin and then use the pin as the flag
@@ -131,7 +158,7 @@ void startWaitingToSendAll(){
   }
 }
 void startMessageReceive(unsigned char a){
-  currentState=stWaitingToReceive;
+  currentState=stReceiving;
   //grant permission
   digitalWrite(PARENTX[a],HIGH);
   long waitStart=millis();
@@ -140,8 +167,22 @@ void startMessageReceive(unsigned char a){
   while(!Serial.available()){
     if(millis()-waitStart>3000) timeoutError=true;
   }
+  unsigned char n=0;
+  while(Serial.available()){
+    messageIn[n]=Serial.read();
+    n++;
+    n%=3;
+  }
+  //send to computer what was received, for monitoring purposes
+  Serial.print("received: ");
+  Serial.write(messageIn[0]);
+  Serial.write(messageIn[1]);
+  Serial.write(messageIn[2]);
+  Serial.write('\n');
+
   digitalWrite(PARENTX[a],LOW);
   currentState=stIdle;
+  digitalWrite(waitingToReceivePin,LOW);
 }
 void waitingPermission(){
   //question: does the digital read interfere with the normal serial operation?
@@ -154,17 +195,18 @@ void waitingPermission(){
 
         currentState=stSending;
 
-        //clear the flag that message is waiting for this child
-        waitingChild&=~(0x1<<childn);
-        digitalWrite(CHILDTX[childn],LOW);
         //send message to the iterated child
         SchildTX[childn].write(messageOut[0]);
         SchildTX[childn].write(messageOut[1]);
         SchildTX[childn].write(messageOut[2]);
 
+        //clear the flag that message is waiting for this child
+        waitingChild&=~(0x1<<childn);
+        digitalWrite(CHILDTX[childn],LOW);
       }
   }
   if(waitingChild=0x0){
+    digitalWrite(waitingToSendPin,LOW);
     currentState=stIdle;
   }
 }
