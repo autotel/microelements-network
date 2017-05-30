@@ -1,11 +1,11 @@
-//arduino Mega
+#include "PoliteSerial.h"
 #define RCBLEN 16
 #define MSGLEN 4
 char rcb [RCBLEN];
 unsigned char wrHead=0;
 unsigned char readHead=0;
-#define RX1PIN 0
-#define TX1PIN 1
+// #define RX1PIN 0
+// #define TX1PIN 1
 bool outgoDue=false;
 
 #define ECHOLATENCY 5000
@@ -14,14 +14,16 @@ long messageReceivedAt=0;
 unsigned char outgoingQueue [MSGLEN];
 unsigned char incomingQueue[MSGLEN];
 
+PoliteSerial politeSerial();
+
 void setup(){
-  comLoopSetup();
+  politeSerial.init(Serial1,19,18,9600);
+  politeSerial.onMessage(onPoliteMessage);
+  DDRB=0xff;
 }
 
-
 void loop(){
-
-  comLoop();
+  PORTB=politeSerial.loop();
   if(outgoDue){
     if(millis()-messageReceivedAt>ECHOLATENCY){
       sendMessage();
@@ -30,7 +32,7 @@ void loop(){
   }
 
 }
-void onVirtualMessage(){
+void onPoliteMessage(){
   messageReceivedAt=millis();
   for(unsigned char a=0; a<MSGLEN; a++){
     outgoingQueue[a]=incomingQueue[a];

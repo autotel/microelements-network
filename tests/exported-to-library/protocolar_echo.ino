@@ -52,7 +52,7 @@ void comLoop(){
       }
       Serial.end();
       digitalWrite(TX1PIN, LOW);
-      onVirtualMessage();
+      onPoliteMessage();
       currentState=StateIDLE;
       break;
     }

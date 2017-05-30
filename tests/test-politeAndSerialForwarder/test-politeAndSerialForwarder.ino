@@ -1,20 +1,25 @@
+#include <PoliteSerial.h>
 //arduino Mega
 #define RCBLEN 16
 #define MSGLEN 4
 char rcb [RCBLEN];
 unsigned char wrHead=0;
 unsigned char readHead=0;
-#define RX1PIN 19
-#define TX1PIN 18
+// #define RX1PIN 19
+// #define TX1PIN 18
 bool outgoDue=false;
 
 unsigned char outgoingQueue [MSGLEN];
 unsigned char incomingQueue[MSGLEN];
 
+PoliteSerial politeSerial();
+
 void setup(){
   Serial.begin(9600);
   Serial.println("hi");
-  comLoopSetup();
+  politeSerial.init(Serial1,19,18,9600);
+  politeSerial.onMessage(onPoliteMessage);
+  DDRB=0xff;
 }
 
 void loop(){
@@ -39,7 +44,7 @@ void loop(){
     readHead%=RCBLEN;
     outgoDue=true;
   }
-  comLoop();
+  PORTB=politeSerial.loop();
   if(outgoDue){
     Serial.println("sending@"+String(millis(),DEC));
     sendMessage();
@@ -47,7 +52,7 @@ void loop(){
   }
 }
 
-void onVirtualMessage(){
+void onPoliteMessage(){
   for(unsigned char a=0; a<MSGLEN;a++)
   Serial.write(incomingQueue[a]);
   Serial.println("polite received@"+String(millis(),DEC));

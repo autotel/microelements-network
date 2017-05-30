@@ -1,25 +1,33 @@
+#include "Arduino.h"
+#include "PoliteSerial.h"
+
 #define StateIDLE 1
 #define StateTimeoutError 3
 #define StateSENDWAITING 2
 #define StateRECEIVEWAITING 4
 #define StateSENDING 5
 #define StateRECEIVING 6
-#define POLITEBAUD 9600
-#define TIMEOUT 250
-int currentState=StateIDLE;
-long sendWaitStart=0;
-long receiveWaitStart=0;
-bool timeoutError=false;
-void comLoopSetup(){
+
+PoliteSerial::PoliteSerial(){
+}
+void PoliteSerial::init(Stream &ms,int myRX, int myTX, int baudRate){
+  POLITEBAUD=baudRate;
+  _Serial=ms;
+  RX1PIN=myRX;
+  TX1PIN=myTX;
   pinMode(RX1PIN,INPUT);
   pinMode(TX1PIN,OUTPUT);
-  // digitalWrite(TX1PIN,LOW);
-  DDRB=0xff;
+  currentState=StateIDLE;
+  // DDRB=0xff;
 }
-void comLoop(){
-  PORTB=currentState;
+void PoliteSerial::onMessage(void (*midiInCallback)(MidiMessage))
+{
+	_midiInCallback = midiInCallback;
+}
+int PoliteSerial::comLoop(){
+  // PORTB=currentState;
   if(timeoutError){
-    PORTB=StateTimeoutError;
+    // PORTB=StateTimeoutError;
     delay(TIMEOUT*3);
     timeoutError=false;
   }
@@ -36,31 +44,32 @@ void comLoop(){
       digitalWrite(TX1PIN, HIGH);//comment this
       //begins the serial, that will set the pin to high in consecuence,
       //giving a permit flag
-      Serial1.begin(POLITEBAUD);
+      _Serial.begin(POLITEBAUD);
       receiveWaitStart=millis();
       timeoutError=false;
       int bytesCount=0;
       while(!((bytesCount>=MSGLEN)||timeoutError)){
         //count and timeout
         if(millis()-receiveWaitStart>TIMEOUT) timeoutError=true;
-        if(Serial1.available()){
-          incomingQueue[bytesCount]=Serial1.read();
+        if(_Serial.available()){
+          incomingQueue[bytesCount]=_Serial.read();
           bytesCount++;
         }
         // delayMicroseconds(100);
       }
-      Serial1.end();
+      _Serial.end();
       digitalWrite(TX1PIN, LOW);
-      onVirtualMessage();
+      // onPoliteMessage();
+      _midiInCallback(message);
       currentState=StateIDLE;
       break;
     }
     case StateSENDING:{
-      Serial1.begin(POLITEBAUD);
+      _Serial.begin(POLITEBAUD);
       for(unsigned char a=0; a<MSGLEN; a++){
-        Serial1.write(outgoingQueue[a]);
+        _Serial.write(outgoingQueue[a]);
       }
-      Serial1.end();
+      _Serial.end();
       digitalWrite(TX1PIN, LOW);
       currentState=StateIDLE;
       break;
@@ -75,8 +84,10 @@ void comLoop(){
       break;
     }
   }
+  return currentState;
 }
-void sendMessage(){
+
+PoliteSerial::sendMessage(){
   currentState=StateSENDWAITING;
   sendWaitStart=millis();
 }
