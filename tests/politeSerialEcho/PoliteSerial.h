@@ -10,18 +10,19 @@
 #include "Arduino.h"
 #ifndef PoliteSerial_h
 #define PoliteSerial_h
-
-class PoliteSerial
-{
+#define MSGLEN 4
+class PoliteSerial{
   public:
-    PoliteSerial();
-    void init(Stream &ms,int myRX, int myTX, int baudRate);
-    void loop();
-    void onMessage(void (*midiInCallback)(MidiMessage));
+    PoliteSerial(HardwareSerial &ms,int myRX, int myTX, int baudRate);
+    void init();
+    int loop();
+    void onMessage(void (*_midiInCallback)());
+    void sendMessage();
     unsigned char outgoingQueue [MSGLEN];
     unsigned char incomingQueue [MSGLEN];
+    
   private:
-    Stream _Serial
+    HardwareSerial& _Serial;
     int currentState;
     long sendWaitStart=0;
     long receiveWaitStart=0;
@@ -30,6 +31,7 @@ class PoliteSerial
     int TIMEOUT = 250;
     unsigned char RX1PIN;
     unsigned char TX1PIN;
+    void (*_midiInCallback)();
 };
 
 #endif

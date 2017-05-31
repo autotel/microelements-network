@@ -8,11 +8,10 @@
 #define StateSENDING 5
 #define StateRECEIVING 6
 
-PoliteSerial::PoliteSerial(){
-}
-void PoliteSerial::init(Stream &ms,int myRX, int myTX, int baudRate){
+PoliteSerial::PoliteSerial(HardwareSerial& ms,int myRX, int myTX, int baudRate):
+_Serial(ms){
   POLITEBAUD=baudRate;
-  _Serial=ms;
+  //_Serial=ms;
   RX1PIN=myRX;
   TX1PIN=myTX;
   pinMode(RX1PIN,INPUT);
@@ -20,11 +19,14 @@ void PoliteSerial::init(Stream &ms,int myRX, int myTX, int baudRate){
   currentState=StateIDLE;
   // DDRB=0xff;
 }
-void PoliteSerial::onMessage(void (*midiInCallback)(MidiMessage))
+void PoliteSerial::init(){
+  
+}
+void PoliteSerial::onMessage(void (*midiInCallback)())
 {
 	_midiInCallback = midiInCallback;
 }
-int PoliteSerial::comLoop(){
+int PoliteSerial::loop(){
   // PORTB=currentState;
   if(timeoutError){
     // PORTB=StateTimeoutError;
@@ -60,7 +62,7 @@ int PoliteSerial::comLoop(){
       _Serial.end();
       digitalWrite(TX1PIN, LOW);
       // onPoliteMessage();
-      _midiInCallback(message);
+      _midiInCallback();
       currentState=StateIDLE;
       break;
     }
@@ -87,7 +89,7 @@ int PoliteSerial::comLoop(){
   return currentState;
 }
 
-PoliteSerial::sendMessage(){
+void PoliteSerial::sendMessage(){
   currentState=StateSENDWAITING;
   sendWaitStart=millis();
 }

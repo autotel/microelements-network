@@ -1,6 +1,6 @@
 #include "PoliteSerial.h"
 #define RCBLEN 16
-#define MSGLEN 4
+
 char rcb [RCBLEN];
 unsigned char wrHead=0;
 unsigned char readHead=0;
@@ -13,11 +13,10 @@ long messageReceivedAt=0;
 
 unsigned char outgoingQueue [MSGLEN];
 unsigned char incomingQueue[MSGLEN];
-
-PoliteSerial politeSerial();
+PoliteSerial politeSerial(&Serial1,19,18,9600);
 
 void setup(){
-  politeSerial.init(Serial1,19,18,9600);
+  politeSerial.init();
   politeSerial.onMessage(onPoliteMessage);
   DDRB=0xff;
 }
