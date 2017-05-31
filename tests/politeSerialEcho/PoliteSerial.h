@@ -8,21 +8,25 @@
   //license?
 */
 #include "Arduino.h"
+#include <SoftwareSerial.h>
 #ifndef PoliteSerial_h
 #define PoliteSerial_h
 #define MSGLEN 4
 class PoliteSerial{
   public:
-    PoliteSerial(HardwareSerial &ms,int myRX, int myTX, int baudRate);
+    PoliteSerial(HardwareSerial *ms,int myRX, int myTX, int baudRate);
+    PoliteSerial(SoftwareSerial *ms,int myRX, int myTX, int baudRate);
     void init();
     int loop();
     void onMessage(void (*_midiInCallback)());
     void sendMessage();
     unsigned char outgoingQueue [MSGLEN];
     unsigned char incomingQueue [MSGLEN];
-    
+
   private:
-    HardwareSerial& _Serial;
+    bool softSerialMode=false;
+    HardwareSerial * _Serial;
+    SoftwareSerial * _SSerial;
     int currentState;
     long sendWaitStart=0;
     long receiveWaitStart=0;
@@ -32,6 +36,11 @@ class PoliteSerial{
     unsigned char RX1PIN;
     unsigned char TX1PIN;
     void (*_midiInCallback)();
+    void mySerialBegin();
+    void mySerialEnd();
+    void mySerialWrite(unsigned char data);
+    unsigned char mySerialRead();
+    bool mySerialAvailable();
 };
 
 #endif

@@ -13,9 +13,11 @@ long messageReceivedAt=0;
 
 unsigned char outgoingQueue [MSGLEN];
 unsigned char incomingQueue[MSGLEN];
-PoliteSerial politeSerial(&Serial1,19,18,9600);
+PoliteSerial politeSerial(&Serial,19,18,9600);
 
 void setup(){
+  
+  
   politeSerial.init();
   politeSerial.onMessage(onPoliteMessage);
   DDRB=0xff;
@@ -25,11 +27,10 @@ void loop(){
   PORTB=politeSerial.loop();
   if(outgoDue){
     if(millis()-messageReceivedAt>ECHOLATENCY){
-      sendMessage();
+      politeSerial.sendMessage();
       outgoDue=false;
     }
   }
-
 }
 void onPoliteMessage(){
   messageReceivedAt=millis();
